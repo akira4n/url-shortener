@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  urls Url[]
+
+  @@map("users")
+}
+
+model Url {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  originalUrl String   @db.Text @map("original_url")
+  shortCode   String   @unique @map("short_code")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clickAnalytics ClickAnalytic[]
+
+  @@index([userId])
+  @@map("urls")
+}
+
+model ClickAnalytic {
+  id         BigInt   @id @default(autoincrement())
+  urlId      String   @map("url_id")
+  clickedAt  DateTime @default(now()) @map("clicked_at")
+  referer    String?
+  browser    String?
+  os         String?
+  deviceType String?  @map("device_type")
+  ipAddress  String?  @map("ip_address")
+
+  url Url @relation(fields: [urlId], references: [id], onDelete: Cascade)
+
+  @@index([urlId, clickedAt])
+  @@map("click_analytics")
+}
