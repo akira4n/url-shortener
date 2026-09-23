@@ -3,6 +3,9 @@ const cors = require('cors');
 const { httpLogger } = require('./infrastructure/logger');
 const errorHandler = require('./middlewares/error-handler');
 
+// import routes
+const authRoutes = require('./modules/auth/auth.routes');
+
 const app = express();
 
 app.use(cors());
@@ -17,6 +20,9 @@ app.get('/api/health', (req, res) => {
     message: 'Service is healthy',
   });
 });
+
+// routes
+app.use('/api/v1/auth', authRoutes);
 
 // 404 route not found
 app.use((req, res) => {
