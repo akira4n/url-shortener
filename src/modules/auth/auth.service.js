@@ -26,7 +26,7 @@ const register = async ({ name, email, password }) => {
     },
     process.env.JWT_SECRET,
     {
-      expiresIn: '3d',
+      expiresIn: process.env.JWT_EXPIRES_IN || '3d',
     },
   );
 
@@ -64,7 +64,7 @@ const login = async ({ email, password }) => {
     },
     process.env.JWT_SECRET,
     {
-      expiresIn: '3d',
+      expiresIn: process.env.JWT_EXPIRES_IN || '3d',
     },
   );
 
