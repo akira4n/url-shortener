@@ -48,8 +48,8 @@ const createShortUrl = async ({ userId, originalUrl, customSlug }) => {
 
       await redisConnection.set(cacheKey, cacheValue, 'EX', 86400);
     } catch (redisErr) {
-      logger.error(
-        { err: redisErr },
+      logger.warn(
+        { err: redisErr, shortCode },
         'Failed to warm Redis cache during URL creation',
       );
     }
