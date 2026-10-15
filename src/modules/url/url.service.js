@@ -58,4 +58,66 @@ const createShortUrl = async ({ userId, originalUrl, customSlug }) => {
   }
 };
 
-module.exports = { createShortUrl };
+const getOriginalUrl = async (shortCode) => {
+  let cachedValue = null;
+  const cacheKey = `urls:${shortCode}`;
+
+  try {
+    cachedValue = await redisConnection.get(cacheKey);
+  } catch (redisErr) {
+    logger.warn(
+      { err: redisErr, shortCode },
+      'Redis unavailable, falling back to database',
+    );
+  }
+
+  // negative cache
+  if (cachedValue === 'EMPTY') {
+    const error = new Error('Short URL not found.');
+    error.status = 404;
+    throw error;
+  }
+
+  // cache hit
+  if (cachedValue !== null) {
+    return JSON.parse(cachedValue);
+  }
+
+  // cache miss or Redis failure
+  const url = await urlRepository.findByShortCode(shortCode);
+
+  // URL not found
+  if (!url) {
+    try {
+      await redisConnection.set(cacheKey, 'EMPTY', 'EX', 60);
+    } catch (redisErr) {
+      logger.warn(
+        { err: redisErr, shortCode },
+        'Failed to cache missing short URL',
+      );
+    }
+
+    const error = new Error('Short URL not found.');
+    error.status = 404;
+    throw error;
+  }
+
+  // cache warming
+  try {
+    const cacheValue = JSON.stringify({
+      id: url.id,
+      originalUrl: url.originalUrl,
+    });
+
+    await redisConnection.set(cacheKey, cacheValue, 'EX', 86400);
+  } catch (redisErr) {
+    logger.warn({ err: redisErr, shortCode }, 'Failed to warm URL cache');
+  }
+
+  return {
+    id: url.id,
+    originalUrl: url.id,
+  };
+};
+
+module.exports = { createShortUrl, getOriginalUrl };
