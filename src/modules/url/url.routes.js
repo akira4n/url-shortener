@@ -5,6 +5,8 @@ const validate = require('../../middlewares/validate');
 const urlSchema = require('./url.schema');
 const authenticate = require('../../middlewares/authenticate');
 
+router.get('/:code', urlController.redirectToOriginalUrl);
+
 router.post(
   '/',
   authenticate,
