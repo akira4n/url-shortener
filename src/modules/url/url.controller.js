@@ -1,4 +1,7 @@
 const urlService = require('./url.service');
+const { analyticsQueue } = require('../../infrastructure/queue');
+const { getClientIp } = require('../../utils/ip-resolver');
+const { logger } = require('../../infrastructure/logger');
 
 const createShortUrl = async (req, res, next) => {
   try {
@@ -17,4 +20,30 @@ const createShortUrl = async (req, res, next) => {
   }
 };
 
-module.exports = { createShortUrl };
+const redirectToOriginalUrl = async (req, res, next) => {
+  try {
+    const shortCode = req.params.code;
+    const result = await urlService.getOriginalUrl(shortCode);
+
+    analyticsQueue
+      .add('log-click', {
+        urlId: result.id,
+        ipAddress: getClientIp(req),
+        userAgent: req.headers['user-agent'] || null,
+        referer: req.headers['referer'] || req.headers['referrer'] || null,
+        clickedAt: new Date(),
+      })
+      .catch((err) => {
+        logger.error(
+          { err, urlId: result.id },
+          'Failed to publish click analytics job',
+        );
+      });
+
+    return res.redirect(302, result.originalUrl);
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { createShortUrl, redirectToOriginalUrl };
