@@ -120,4 +120,114 @@ const getOriginalUrl = async (shortCode) => {
   };
 };
 
-module.exports = { createShortUrl, getOriginalUrl };
+const getUserUrls = async ({ userId, page = 1, limit = 10 }) => {
+  const skip = (page - 1) * limit;
+
+  const [urls, total] = await urlRepository.findAndCountByUserId({
+    userId,
+    skip,
+    limit,
+  });
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    urls,
+    meta: {
+      page: Number(page),
+      limit: Number(limit),
+      total,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
+};
+
+const updateUrl = async ({ id, userId, originalUrl, customSlug }) => {
+  const url = await urlRepository.findById(id);
+
+  if (!url) {
+    const error = new Error('URL not found.');
+    error.status = 404;
+    throw error;
+  }
+
+  if (url.userId !== userId) {
+    const error = new Error('Forbidden.');
+    error.status = 403;
+    throw error;
+  }
+
+  const data = {};
+  if (originalUrl) data.originalUrl = originalUrl;
+  if (customSlug) data.shortCode = customSlug;
+
+  let updatedUrl;
+
+  try {
+    updatedUrl = await urlRepository.update(id, data);
+  } catch (err) {
+    if (err.code === 'P2002') {
+      const error = new Error('Custom slug is already taken.');
+      error.status = 409;
+      throw error;
+    }
+
+    throw err;
+  }
+
+  // cache Invalidation & Cache Warming
+  try {
+    await redisConnection.del(`urls:${url.shortCode}`);
+
+    const newCacheKey = `urls:${updatedUrl.shortCode}`;
+    const newCacheValue = JSON.stringify({
+      id: updatedUrl.id,
+      originalUrl: updatedUrl.originalUrl,
+    });
+
+    await redisConnection.set(newCacheKey, newCacheValue, 'EX', 86400);
+  } catch (redisErr) {
+    logger.warn(
+      { err: redisErr, urlId: id },
+      'Failed to update Redis cache after URL modification',
+    );
+  }
+
+  return updatedUrl;
+};
+
+const deleteUrl = async ({ id, userId }) => {
+  const url = await urlRepository.findById(id);
+
+  if (!url) {
+    const error = new Error('URL not found.');
+    error.status = 404;
+    throw error;
+  }
+
+  if (url.userId !== userId) {
+    const error = new Error('Forbidden.');
+    error.status = 403;
+    throw error;
+  }
+
+  const deleted = await urlRepository.deleteById(id);
+
+  try {
+    await redisConnection.del(`urls:${url.shortCode}`);
+  } catch (redisErr) {
+    logger.warn({ err: redisErr, urlId: id }, 'Failed to delete Redis cache');
+  }
+
+  return deleted;
+};
+
+module.exports = {
+  createShortUrl,
+  getOriginalUrl,
+  getUserUrls,
+  updateUrl,
+  deleteUrl,
+};
