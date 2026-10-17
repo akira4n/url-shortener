@@ -116,7 +116,7 @@ const getOriginalUrl = async (shortCode) => {
 
   return {
     id: url.id,
-    originalUrl: url.id,
+    originalUrl: url.originalUrl,
   };
 };
 
