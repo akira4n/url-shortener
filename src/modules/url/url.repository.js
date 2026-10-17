@@ -48,7 +48,6 @@ const deleteById = (id) => {
 module.exports = {
   create,
   findByShortCode,
-  findByUserId,
   findAndCountByUserId,
   findById,
   update,
