@@ -12,12 +12,6 @@ const findByShortCode = (shortCode) => {
   });
 };
 
-const findByUserId = (userId) => {
-  return prisma.url.findMany({
-    where: { userId },
-  });
-};
-
 const findAndCountByUserId = ({ userId, skip, limit }) => {
   return prisma.$transaction([
     prisma.url.findMany({
