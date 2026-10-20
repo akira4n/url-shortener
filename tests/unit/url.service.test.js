@@ -20,7 +20,7 @@ const { generateShortCode } = require('../../src/utils/code-generator');
 const { redisConnection } = require('../../src/infrastructure/redis');
 const { logger } = require('../../src/infrastructure/logger');
 
-describe('URL Service - createShortUrl() Unit Tests', () => {
+describe('URL Service Unit Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     redisConnection.get.mockResolvedValue(null);
