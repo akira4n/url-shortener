@@ -6,8 +6,8 @@ const { logger } = require('../../infrastructure/logger');
 const createShortUrl = async (req, res, next) => {
   try {
     const result = await urlService.createShortUrl({
-      userId: req.user.id,
       ...req.body,
+      userId: req.user.id,
     });
 
     res.status(201).json({
@@ -49,8 +49,8 @@ const redirectToOriginalUrl = async (req, res, next) => {
 const getUserUrls = async (req, res, next) => {
   try {
     const result = await urlService.getUserUrls({
-      userId: req.user.id,
       ...req.query,
+      userId: req.user.id,
     });
 
     res.status(200).json({
@@ -67,9 +67,9 @@ const getUserUrls = async (req, res, next) => {
 const updateUrl = async (req, res, next) => {
   try {
     const result = await urlService.updateUrl({
+      ...req.body,
       id: req.params.id,
       userId: req.user.id,
-      ...req.body,
     });
 
     res.status(200).json({
