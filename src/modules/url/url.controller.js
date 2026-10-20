@@ -10,7 +10,7 @@ const createShortUrl = async (req, res, next) => {
       ...req.body,
     });
 
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       message: 'Short URL created successfully.',
       data: result,
@@ -40,7 +40,7 @@ const redirectToOriginalUrl = async (req, res, next) => {
         );
       });
 
-    return res.redirect(302, result.originalUrl);
+    res.redirect(302, result.originalUrl);
   } catch (error) {
     next(error);
   }
