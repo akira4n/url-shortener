@@ -7,39 +7,41 @@ const { redisConnection } = require('./infrastructure/redis');
 
 logger.info('Analytics background worker process started...');
 
-let isShuttingDown = false;
+const shutdown = (signal) => {
+  logger.info(`Received ${signal}. Starting graceful shutdown...`);
 
-const shutdown = async (signal) => {
-  if (isShuttingDown) {
-    return;
-  }
+  worker.close().then(async () => {
+    logger.info('Analytics worker closed.');
 
-  isShuttingDown = true;
+    try {
+      await prisma.$disconnect();
+      logger.info('Database connection closed.');
 
-  logger.info(`Received ${signal}. Closing worker and connections...`);
+      await redisConnection.quit();
+      logger.info('Redis connection closed.');
 
-  try {
-    await worker.close();
-    await prisma.$disconnect();
-    await redisConnection.quit();
+      process.exit(0);
+    } catch (err) {
+      logger.error({ err }, 'Error during shutdown');
+      process.exit(1);
+    }
+  });
 
-    logger.info('Worker process gracefully terminated.');
-    process.exit(0);
-  } catch (err) {
-    logger.error({ err }, 'Error during worker shutdown');
+  setTimeout(() => {
+    logger.error('Forceful worker shutdown executed due to timeout');
     process.exit(1);
-  }
+  }, 10000);
 };
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 process.on('unhandledRejection', (err) => {
-  logger.error({ err }, 'Unhandled promise rejection');
+  logger.error({ err }, 'Unhandled Rejection');
   shutdown('unhandledRejection');
 });
 
 process.on('uncaughtException', (err) => {
-  logger.error({ err }, 'Uncaught exception');
+  logger.error({ err }, 'Uncaught Exception');
   process.exit(1);
 });
