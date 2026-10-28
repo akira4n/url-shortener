@@ -1,0 +1,64 @@
+name: CI Pipeline
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: url_shortener_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Prisma Migration on Test DB
+        env:
+          DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/url_shortener_test?schema=public
+        run: npx prisma migrate deploy
+
+      - name: Run Test Suite
+        env:
+          DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/url_shortener_test?schema=public
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: testsecretkey
+        run: npm test
+
+      - name: Verify Dockerfile Build
+        run: docker build -t url-shortener-app:test .
