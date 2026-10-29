@@ -8,7 +8,7 @@ const processor = async (job) => {
   const { urlId, ipAddress, userAgent, referer, clickedAt } = job.data;
   const { browser, os, deviceType } = parseUserAgent(userAgent);
 
-  return analyticsRepository.createClickLog({
+  await analyticsRepository.createClickLog({
     urlId,
     ipAddress,
     referer,
