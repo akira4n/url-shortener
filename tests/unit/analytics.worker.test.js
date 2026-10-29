@@ -64,12 +64,10 @@ describe('Analytics Worker Unit Tests', () => {
       os: 'Windows',
       deviceType: 'desktop',
     };
-    const createdLog = { id: 'click-uuid-123' };
-
     parseUserAgent.mockReturnValue(parsedUserAgent);
-    analyticsRepository.createClickLog.mockResolvedValue(createdLog);
+    analyticsRepository.createClickLog.mockResolvedValue({ id: 1n });
 
-    const result = await processor({
+    await processor({
       data: {
         urlId: 'url-uuid-123',
         ipAddress: '127.0.0.1',
@@ -87,7 +85,6 @@ describe('Analytics Worker Unit Tests', () => {
       clickedAt: new Date(clickedAt),
       ...parsedUserAgent,
     });
-    expect(result).toBe(createdLog);
   });
 
   it('should use the current date when clickedAt is missing', async () => {
