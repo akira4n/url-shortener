@@ -12,6 +12,7 @@ const errorHandler = (err, req, res, next) => {
 
   if (status >= 500) {
     logger.error(err);
+    message = 'Internal Server Error';
   }
 
   res.status(status).json({
