@@ -1,5 +1,6 @@
 const pino = require('pino');
 const pinoHttp = require('pino-http');
+const { randomUUID } = require('node:crypto');
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
@@ -20,6 +21,12 @@ const logger = pino({
 
 const httpLogger = pinoHttp({
   logger,
+
+  genReqId: (req, res) => {
+    const requestId = randomUUID();
+    res.setHeader('X-Request-ID', requestId);
+    return requestId;
+  },
 
   customLogLevel: (req, res, err) => {
     if (err || res.statusCode >= 500) {

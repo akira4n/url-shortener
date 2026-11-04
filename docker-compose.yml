@@ -84,9 +84,64 @@ services:
     networks:
       - app-network
 
+  loki:
+    image: grafana/loki:3.7.0
+    restart: unless-stopped
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - loki_data:/loki
+      - ./observability/loki-config.yml:/etc/loki/config.yml:ro
+    healthcheck:
+      test:
+        [
+          'CMD',
+          '/usr/bin/loki',
+          '-config.file=/etc/loki/config.yml',
+          '-verify-config=true',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  alloy:
+    image: grafana/alloy:v1.21.3
+    restart: unless-stopped
+    command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy
+      - ./observability/alloy-config.alloy:/etc/alloy/config.alloy:ro
+    depends_on:
+      loki:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana:13.3.0
+    restart: unless-stopped
+    environment:
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost/grafana/}
+      GF_SERVER_SERVE_FROM_SUB_PATH: 'true'
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Grafana admin password is required}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      loki:
+        condition: service_healthy
+    networks:
+      - app-network
+
 volumes:
   postgres_data:
   redis_data:
+  loki_data:
+  alloy_data:
+  grafana_data:
 
 networks:
   app-network:
