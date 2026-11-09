@@ -477,6 +477,7 @@ Optional query parameters:
 - `startDate`: ISO date `YYYY-MM-DD`.
 - `endDate`: ISO date `YYYY-MM-DD`.
 - If both are present, `startDate` must be less than or equal to `endDate`.
+- If both are present, the date range must not exceed 365 days.
 
 ```bash
 curl 'http://localhost:3000/api/v1/analytics/<url-id>?startDate=2026-01-01&endDate=2026-12-31' \
