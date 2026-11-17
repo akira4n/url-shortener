@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 const authRepository = require('./auth.repository');
+const { signToken } = require('../../utils/jwt');
 
 const register = async ({ name, email, password }) => {
   const existingUser = await authRepository.findByEmail(email);
@@ -19,16 +19,10 @@ const register = async ({ name, email, password }) => {
     password: hashedPassword,
   });
 
-  const token = jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: process.env.JWT_EXPIRES_IN || '3d',
-    },
-  );
+  const token = signToken({
+    id: user.id,
+    email: user.email,
+  });
 
   return {
     user: {
@@ -57,16 +51,10 @@ const login = async ({ email, password }) => {
     throw error;
   }
 
-  const token = jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: process.env.JWT_EXPIRES_IN || '3d',
-    },
-  );
+  const token = signToken({
+    id: user.id,
+    email: user.email,
+  });
 
   return {
     user: {
